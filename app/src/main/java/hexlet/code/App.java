@@ -15,8 +15,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public final class App {
     private static final String PORT = "8080";
-    private static final String JDBC_URL_DEFAULT = "jdbc:h2:mem:project";
-    private static final String SCHEMA_SQL = "schema.sql";
+    private static final String JDBC_URL = "jdbc:h2:mem:hexlet_project;DB_CLOSE_DELAY=-1;";
 
     public static void main(String[] args) throws SQLException, IOException {
         Javalin app = getApp();
@@ -29,17 +28,16 @@ public final class App {
     }
 
     private static String getJdbcUrl() {
-        return System.getenv().getOrDefault("JDBC_DATABASE_URL", JDBC_URL_DEFAULT);
+        return System.getenv().getOrDefault("JDBC_DATABASE_URL", JDBC_URL);
     }
 
     public static Javalin getApp() throws SQLException, IOException {
-        Javalin app = Javalin.create(config -> config.plugins.enableDevLogging());
 
         var hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl(getJdbcUrl());
+        hikariConfig.setJdbcUrl(JDBC_URL);
 
         var dataSource = new HikariDataSource(hikariConfig);
-        var url = App.class.getClassLoader().getResource(SCHEMA_SQL);
+        var url = App.class.getClassLoader().getResource("schema.sql");
         var file = new File(url.getFile());
         var sql = Files.lines(file.toPath())
                 .collect(Collectors.joining("\n"));
@@ -51,8 +49,9 @@ public final class App {
             statement.execute(sql);
         }
         BaseRepository.dataSource = dataSource;
+        Javalin app = Javalin.create(config -> config.plugins.enableDevLogging());
 
+        app.get("/", ctx -> ctx.result("Hello, World!"));
         return app;
     }
-
 }
