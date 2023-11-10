@@ -1,23 +1,58 @@
 package hexlet.code;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import hexlet.code.repository.BaseRepository;
 import io.javalin.Javalin;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.sql.SQLException;
+import java.util.stream.Collectors;
+
 @Slf4j
 public final class App {
-    private static int getPort() {
-        String port = System.getenv().getOrDefault("PORT", "8080");
-        return Integer.parseInt(port);
-    }
+    private static final String PORT = "8080";
+    private static final String JDBC_URL_DEFAULT = "jdbc:h2:mem:project";
+    private static final String SCHEMA_SQL = "schema.sql";
 
-    public static Javalin getApp() {
-        Javalin app = Javalin.create(config -> config.plugins.enableDevLogging());
-        app.get("/", ctx -> ctx.result("Hello World!"));
-        return app;
-    }
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SQLException, IOException {
         Javalin app = getApp();
         app.start(getPort());
     }
+
+    private static int getPort() {
+        String port = System.getenv().getOrDefault("PORT", PORT);
+        return Integer.parseInt(port);
+    }
+
+    private static String getJdbcUrl() {
+        return System.getenv().getOrDefault("JDBC_DATABASE_URL", JDBC_URL_DEFAULT);
+    }
+
+    public static Javalin getApp() throws SQLException, IOException {
+        Javalin app = Javalin.create(config -> config.plugins.enableDevLogging());
+
+        var hikariConfig = new HikariConfig();
+        hikariConfig.setJdbcUrl(getJdbcUrl());
+
+        var dataSource = new HikariDataSource(hikariConfig);
+        var url = App.class.getClassLoader().getResource(SCHEMA_SQL);
+        var file = new File(url.getFile());
+        var sql = Files.lines(file.toPath())
+                .collect(Collectors.joining("\n"));
+
+        log.info(sql);
+
+        try (var connection = dataSource.getConnection();
+             var statement = connection.createStatement()) {
+            statement.execute(sql);
+        }
+        BaseRepository.dataSource = dataSource;
+
+        return app;
+    }
+
 }
