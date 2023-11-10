@@ -1,6 +1,9 @@
 run-dist:
 	./build/install/app/bin/app
 
+start:
+	./gradlew run
+
 help:
 	./build/install/app/bin/app -h
 
