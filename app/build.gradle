@@ -3,6 +3,7 @@ plugins {
     id 'checkstyle'
     id 'jacoco'
     id "com.github.johnrengelman.shadow" version "8.1.1"
+    id "io.freefair.lombok" version "8.3"
 }
 
 group = 'hexlet.code'
@@ -23,7 +24,7 @@ dependencies {
 
     implementation 'org.slf4j:slf4j-simple:2.0.9'
 
-    compileOnly 'org.projectlombok:lombok:1.18.30'
+ //   compileOnly 'org.projectlombok:lombok:1.18.30'
 
     implementation 'com.h2database:h2:2.2.224'
     implementation 'com.zaxxer:HikariCP:5.0.1'
