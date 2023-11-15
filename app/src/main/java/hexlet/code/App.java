@@ -31,10 +31,23 @@ public final class App {
         return System.getenv().getOrDefault("JDBC_DATABASE_URL", JDBC_URL);
     }
 
-    public static Javalin getApp() throws SQLException, IOException {
+    private static boolean isProd() {
+        return System.getenv().getOrDefault("APP_ENV", "dev").equals("production");
+    }
 
+    private static void setDataBase(HikariConfig hikariConfig) {
+        hikariConfig.setJdbcUrl(getJdbcUrl());
+        if (isProd()) {
+            var userName = System.getenv("JDBS_DATABASE_USERNAME");
+            var password = System.getenv("JDBS_DATABASE_PASSWORD");
+            hikariConfig.setUsername(userName);
+            hikariConfig.setPassword(password);
+        }
+    }
+
+    public static Javalin getApp() throws SQLException, IOException {
         var hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl(JDBC_URL);
+        setDataBase(hikariConfig);
 
         var dataSource = new HikariDataSource(hikariConfig);
         var url = App.class.getClassLoader().getResource("schema.sql");
@@ -43,13 +56,13 @@ public final class App {
                 .collect(Collectors.joining("\n"));
 
         log.info(sql);
-
         try (var connection = dataSource.getConnection();
              var statement = connection.createStatement()) {
             statement.execute(sql);
         }
         BaseRepository.dataSource = dataSource;
-        Javalin app = Javalin.create(config -> config.plugins.enableDevLogging());
+
+        var app = Javalin.create(config -> config.plugins.enableDevLogging());
 
         app.get("/", ctx -> ctx.result("Hello, World!"));
         return app;
