@@ -2,13 +2,20 @@ package hexlet.code;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import gg.jte.ContentType;
+import gg.jte.TemplateEngine;
+import gg.jte.resolve.ResourceCodeResolver;
+import hexlet.code.controller.RootController;
 import hexlet.code.repository.BaseRepository;
+import hexlet.code.util.NamedRoutes;
 import io.javalin.Javalin;
+import io.javalin.rendering.template.JavalinJte;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.stream.Collectors;
 
@@ -45,15 +52,20 @@ public final class App {
         }
     }
 
-    public static Javalin getApp() throws SQLException, IOException {
+    private static TemplateEngine createTemplateEngine() {
+        ClassLoader classLoader = App.class.getClassLoader();
+        ResourceCodeResolver codeResolver = new ResourceCodeResolver("templates", classLoader);
+        return TemplateEngine.create(codeResolver, ContentType.Html);
+    }
+
+    public static Javalin getApp() throws SQLException {
         var hikariConfig = new HikariConfig();
         setDataBase(hikariConfig);
 
         var dataSource = new HikariDataSource(hikariConfig);
-        var url = App.class.getClassLoader().getResource("schema.sql");
-        var file = new File(url.getFile());
-        var sql = Files.lines(file.toPath())
-                .collect(Collectors.joining("\n"));
+        var urlStream = App.class.getClassLoader().getResourceAsStream("schema.sql");
+        var reader = new BufferedReader(new InputStreamReader(urlStream));
+        var sql = reader.lines().collect(Collectors.joining());
 
         log.info(sql);
         try (var connection = dataSource.getConnection();
@@ -64,7 +76,9 @@ public final class App {
 
         var app = Javalin.create(config -> config.plugins.enableDevLogging());
 
-        app.get("/", ctx -> ctx.result("Hello, World!"));
+        JavalinJte.init(createTemplateEngine());
+
+        app.get(NamedRoutes.rootPath(), RootController::index);
         return app;
     }
 }
