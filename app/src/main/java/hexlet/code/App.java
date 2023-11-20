@@ -80,7 +80,10 @@ public final class App {
         JavalinJte.init(createTemplateEngine());
 
         app.get(NamedRoutes.rootPath(), RootController::index);
-        app.get(NamedRoutes.urlsPath(), UrlController::create);
+        app.get(NamedRoutes.urlsPath(), UrlController::index);
+        app.get(NamedRoutes.urlPath("{id}"), UrlController::show);
+        app.post(NamedRoutes.urlsPath(), UrlController::create);
+
         return app;
     }
 }
