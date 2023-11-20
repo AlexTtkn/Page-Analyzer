@@ -26,7 +26,7 @@ public class UrlRepository extends BaseRepository {
         }
     }
 
-    private static Optional<Url> find(Long id) throws SQLException {
+    public static Optional<Url> find(Long id) throws SQLException {
         String sql = "SELECT * FROM urls WHERE id = ?";
         try (var conn = dataSource.getConnection();
              var stmt = conn.prepareStatement(sql)) {
@@ -43,7 +43,7 @@ public class UrlRepository extends BaseRepository {
         }
     }
 
-    private static List<Url> getEntities() throws SQLException {
+    public static List<Url> getEntities() throws SQLException {
         String sql = "SELECT * FROM urls";
         try (var conn = dataSource.getConnection();
              var stmt = conn.prepareStatement(sql)) {
