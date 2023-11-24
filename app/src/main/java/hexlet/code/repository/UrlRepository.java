@@ -77,7 +77,8 @@ public class UrlRepository extends BaseRepository {
             return null;
         }
     }
-    public static boolean doesUrlExist(String name) throws SQLException {
+    public static boolean isUrlExist(String name) throws SQLException {
         return findByName(name) != null;
     }
 }
+
