@@ -3,6 +3,7 @@ package hexlet.code.controller;
 import hexlet.code.dto.urls.UrlPage;
 import hexlet.code.dto.urls.UrlsPage;
 import hexlet.code.model.Url;
+import hexlet.code.repository.UrlCheckRepository;
 import hexlet.code.util.NamedRoutes;
 import hexlet.code.util.ParsedURL;
 import io.javalin.http.Context;
@@ -21,7 +22,8 @@ import java.util.Date;
 public final class UrlController {
     public static void index(Context ctx) throws SQLException {
         var urls = UrlRepository.getEntities();
-        var page = new UrlsPage(urls);
+        var checks = ParsedURL.getListOfLastChecks();
+        var page = new UrlsPage(urls, checks);
         page.setFlash(ctx.consumeSessionAttribute("flash"));
         page.setFlashType(ctx.consumeSessionAttribute("flash-type"));
         ctx.render("urls/index.jte", Collections.singletonMap("page", page));
@@ -31,7 +33,10 @@ public final class UrlController {
         var id = ctx.pathParamAsClass("id", Long.class).get();
         var url = UrlRepository.find(id)
                 .orElseThrow(() -> new NotFoundResponse("Entity with id = " + id + " not found"));
-        var page = new UrlPage(id, url.getName(), url.getCreatedAt());
+        var urlChecks = UrlCheckRepository.getEntitiesById(id);
+        var page = new UrlPage(id, url.getName(), url.getCreatedAt(), urlChecks);
+        page.setFlash(ctx.consumeSessionAttribute("flash"));
+        page.setFlashType(ctx.consumeSessionAttribute("flash-type"));
         ctx.render("urls/show.jte", Collections.singletonMap("page", page));
     }
 
@@ -41,12 +46,11 @@ public final class UrlController {
                 .toLowerCase()
                 .trim();
 
-        URL parsedUrl;
-        String normalizedURL;
+        String parsedURL;
 
         try {
-            parsedUrl = new URI(input).toURL();
-            normalizedURL = ParsedURL.getNormalizedURL(parsedUrl);
+            URL parsedUrl = new URI(input).toURL();
+            parsedURL = ParsedURL.getNormalizedURL(parsedUrl);
         } catch (MalformedURLException | URISyntaxException | IllegalArgumentException e) {
             ctx.sessionAttribute("flash", "Incorrect URL");
             ctx.sessionAttribute("flash-type", "warning");
@@ -54,12 +58,12 @@ public final class UrlController {
             return;
         }
 
-        if (UrlRepository.doesUrlExist(normalizedURL)) {
+        if (UrlRepository.isUrlExist(parsedURL)) {
             ctx.sessionAttribute("flash", "This page already exist");
             ctx.sessionAttribute("flash-type", "info");
             ctx.redirect(NamedRoutes.urlsPath());
         } else {
-            var url = new Url(normalizedURL, new Timestamp(new Date().getTime()));
+            var url = new Url(parsedURL, new Timestamp(new Date().getTime()));
             UrlRepository.save(url);
             ctx.sessionAttribute("flash", "Page added successfully");
             ctx.sessionAttribute("flash-type", "success");
